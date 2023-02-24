@@ -1,0 +1,11 @@
+{
+  "recommendations": [
+		"usernamehw.errorlens",
+		"wix.vscode-import-cost",
+		"esbenp.prettier-vscode",
+		"bradlc.vscode-tailwindcss",
+		"pflannery.vscode-versionlens",
+		"dbaeumer.vscode-eslint"
+	],
+  "unwantedRecommendations": []
+}
