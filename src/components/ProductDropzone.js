@@ -1,12 +1,15 @@
-import { ALLOWED_IMAGE_FORMATS } from "@/constants"
+import { ALLOWED_IMAGE_FORMATS, SOCIAL_NETWORK_IMAGE_SIZES } from "@/constants"
 import { CloudinaryContext } from "@/context/cloudinary"
+import { ToolboxContext } from "@/context/toolbox"
 import { uploadImage } from "@/utils/cloudinary"
+import { socialNetworkIcons } from "@/utils/toolbox"
 import Image from "next/image"
 import { useCallback, useContext } from "react"
 import { useDropzone } from "react-dropzone"
 
 export default function ProductDropzone() {
   const { image, setImage } = useContext(CloudinaryContext)
+  const { options } = useContext(ToolboxContext)
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     accept: { "image/png": ALLOWED_IMAGE_FORMATS },
     maxFiles: 1,
@@ -14,15 +17,17 @@ export default function ProductDropzone() {
       acceptedFiles => {
         uploadImage(acceptedFiles[0]).then(response => {
           const { public_id: publicId, secure_url: url } = response
+          const filename = url.split("/").pop().split(".")[0]
           setImage(prev => ({
             ...prev,
-            ...{ publicId, url, originalUrl: url }
+            ...{ publicId, url, filename, originalUrl: url }
           }))
         })
       },
       [setImage]
     )
   })
+  const fileName = `${options.target}_${image.filename}.png`
 
   const removeFile = () => setImage({})
 
@@ -34,7 +39,7 @@ export default function ProductDropzone() {
 
       const element = document.createElement("a")
       element.setAttribute("href", url)
-      element.setAttribute("download", "image.png")
+      element.setAttribute("download", fileName)
       document.body.appendChild(element)
       element.click()
       document.body.removeChild(element)
@@ -46,23 +51,45 @@ export default function ProductDropzone() {
 
   if (image.url) {
     return (
-      <div className="flex flex-col gap-y-2">
-        <aside className="flex min-h-full border aspect-video group">
-          <button
-            className="group-hover:block hidden absolute px-2 text-xl text-blue-500 font-bold border rounded bg-gray-100 transition-all ease-in duration-75 hover:scale-110"
-            onClick={removeFile}
-            title="Remove file"
-          >
-            x
-          </button>
-          <Image src={image.url} width={800} height={600} alt="Image product" />
-        </aside>
+      <div
+        className={`flex flex-col gap-y-2 group w-full ${
+          image.processed ? "h-auto" : "h-full"
+        }`}
+      >
         <button
-          onClick={downloadHandler}
-          className="w-full py-2 border rounded-md text-blue-600 bg-white border-blue-600 hover:text-white hover:bg-blue-600 hover:border-white focus:outline-none focus:ring-white transition-all ease-in duration-75"
+          className="group-hover:block hidden absolute px-2 text-xl text-blue-500 font-bold border rounded bg-gray-100 transition-all ease-in duration-75 hover:scale-110"
+          onClick={removeFile}
+          title="Remove file"
         >
-          Download
+          x
         </button>
+        <aside className="flex min-h-full border aspect-video justify-center">
+          <Image
+            src={image.url}
+            width={800}
+            height={600}
+            alt="Image product"
+            className="aspect-square w-full h-full"
+          />
+        </aside>
+        {image.processed && (
+          <div className="flex">
+            <span className="w-full flex items-center gap-x-2">
+              <span className="flex">
+                {socialNetworkIcons[options.target]}[
+                {SOCIAL_NETWORK_IMAGE_SIZES[options.target].width}x
+                {SOCIAL_NETWORK_IMAGE_SIZES[options.target].height}]
+              </span>
+              <span>{fileName}</span>
+            </span>
+            <button
+              onClick={downloadHandler}
+              className="w-32 py-2 border rounded-md text-blue-600 bg-white border-blue-600 hover:text-white hover:bg-blue-600 hover:border-white focus:outline-none focus:ring-white transition-all ease-in duration-75"
+            >
+              Download
+            </button>
+          </div>
+        )}
       </div>
     )
   }

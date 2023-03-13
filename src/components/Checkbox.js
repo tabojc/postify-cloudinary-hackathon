@@ -3,7 +3,6 @@ export default function Checkbox({
   name,
   label,
   value,
-  changeHandler,
   typeElement = "checkbox",
   checkedBgColor = "default"
 }) {
@@ -25,7 +24,6 @@ export default function Checkbox({
         name={name}
         type={typeElement}
         value={value}
-        onChange={changeHandler}
       />
       <label
         htmlFor={id}
