@@ -1,14 +1,11 @@
 import { CloudinaryContext } from "@/context/cloudinary"
-import Facebook from "@/icons/facebook"
-import Instagram from "@/icons/Instagram"
-import Pinterest from "@/icons/Pinterest"
-import Twitter from "@/icons/Twitter"
-import Youtube from "@/icons/Youtube"
 import { applyTransformations } from "@/utils/cloudinary"
 import { useContext, useState } from "react"
 import Checkbox from "@/components/Checkbox"
 import { SIZES_ALLOWED, SOCIAL_NETWORK_IMAGE_SIZES } from "@/constants"
 import { ToolboxContext } from "@/context/toolbox"
+import { socialNetworkIcons } from "@/utils/toolbox"
+import toast from "react-hot-toast"
 
 export default function Toolbox() {
   const {
@@ -16,36 +13,49 @@ export default function Toolbox() {
     setImage,
     cldClient
   } = useContext(CloudinaryContext)
-  const { options, setOptions } = useContext(ToolboxContext)
+  const { setOptions } = useContext(ToolboxContext)
   const [loading, setLoading] = useState(false)
 
-  const socialNetworkIcons = {
-    facebook: <Facebook width={24} height={24} />,
-    instagram: <Instagram width={24} height={24} />,
-    twitter: <Twitter width={24} height={24} />,
-    youtube: <Youtube width={24} height={24} />,
-    pinterest: <Pinterest width={24} height={24} />
-  }
+  const generateHandler = e => {
+    e.preventDefault()
+    const formData = new FormData(e.target)
+    const options = {
+      target: formData.get("target"),
+      productBrand: formData.get("productBrand"),
+      productName: formData.get("productName"),
+      productPrice: formData.get("productPrice"),
+      productPriceDecimals: formData.get("productPriceDecimals"),
+      productSizes: formData.getAll("productSizes"),
+      productDescription: formData.get("productDescription")
+    }
+    const isMissingFields = Object.keys(options).some(key => !options[key])
+    if (isMissingFields) {
+      return toast.error("Missing files")
+    }
 
-  const generateHandler = () => {
     setLoading(true)
+    setImage(prev => ({ ...prev, ...{ url: originalUrl, processed: false } }))
     const newImageUrl = applyTransformations({ cldClient, publicId, options })
-    setImage(prev => ({ ...prev, ...{ url: newImageUrl } }))
+    setImage(prev => ({ ...prev, ...{ url: newImageUrl, processed: true } }))
+    setOptions(options)
     setLoading(false)
+    toast.success("Image generated successfully")
   }
 
   const resetHandler = () => {
-    setImage(prev => ({ ...prev, ...{ url: originalUrl } }))
-  }
-
-  const updateOptions = option => {
-    setOptions(prev => ({ ...prev, ...option }))
+    setImage(prev => ({ ...prev, ...{ url: originalUrl, processed: false } }))
+    toast.success("Image reset successfully")
   }
 
   return (
-    <>
+    <form
+      onSubmit={generateHandler}
+      className={`flex flex-col gap-y-4 overflow-y-auto p-2 ${
+        originalUrl ? "" : "pointer-events-none opacity-60"
+      }`}
+    >
       <button
-        onClick={generateHandler}
+        type="submit"
         disabled={loading}
         className="relative inline-flex items-center justify-center p-0.5 w-full text-lg font-medium text-gray-900 rounded-lg group bg-gradient-to-r from-green-300 via-blue-500 to-purple-600 group-hover:from-green-300 group-hover:via-blue-500 group-hover:to-purple-600 hover:text-white focus:ring-4 focus:outline-none focus:ring-white hover:scale-105"
       >
@@ -79,6 +89,7 @@ export default function Toolbox() {
 
       <button
         onClick={resetHandler}
+        type="button"
         className="w-full border rounded-md text-red-500 bg-white border-red-500 hover:text-white hover:bg-red-500 hover:border-white focus:outline-none focus:ring-white transition-all ease-in duration-75"
       >
         Reset Image Styles
@@ -100,9 +111,6 @@ export default function Toolbox() {
                   value={socialNetwork}
                   checkedBgColor={socialNetwork}
                   label={socialNetworkIcons[socialNetwork]}
-                  changeHandler={({ target }) =>
-                    updateOptions({ [target.name]: target.value })
-                  }
                 />
               )
             }
@@ -123,9 +131,7 @@ export default function Toolbox() {
           name="productBrand"
           placeholder="@mystore"
           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full py-2 px-4"
-          onChange={({ target }) =>
-            updateOptions({ [target.name]: target.value || null })
-          }
+          required
         />
       </div>
 
@@ -142,9 +148,7 @@ export default function Toolbox() {
           name="productName"
           placeholder="Adidas shoes..."
           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full py-2 px-4"
-          onChange={({ target }) =>
-            updateOptions({ [target.name]: target.value || null })
-          }
+          required
         />
       </div>
 
@@ -162,9 +166,7 @@ export default function Toolbox() {
             name="productPrice"
             className="py-2 px-4 pl-9 pr-16 block w-full border border-gray-300 rounded-lg text-sm focus:z-10"
             placeholder="0,000"
-            onChange={({ target }) =>
-              updateOptions({ [target.name]: target.value || null })
-            }
+            required
           />
           <div className="absolute inset-y-0 left-0 flex items-center pointer-events-none z-20 pl-4">
             <span className="text-gray-500">$</span>
@@ -177,9 +179,8 @@ export default function Toolbox() {
               maxLength={2}
               className="py-2 px-4 block w-16 border border-gray-300 rounded-r-lg text-sm focus:z-10"
               placeholder=".00"
-              onChange={({ target }) =>
-                updateOptions({ [target.name]: target.value || null })
-              }
+              defaultValue="00"
+              required
             />
           </div>
         </div>
@@ -198,18 +199,6 @@ export default function Toolbox() {
                 name="productSizes"
                 value={value}
                 label={label}
-                changeHandler={({ target }) => {
-                  const value = target.checked
-                    ? [...options[target.name], target.value]
-                    : options[target.name].splice(
-                        options[target.name].findIndex(
-                          curr => curr === target.value
-                        ),
-                        1
-                      )
-
-                  return updateOptions({ [target.name]: value })
-                }}
               />
             )
           })}
@@ -229,11 +218,9 @@ export default function Toolbox() {
           rows="4"
           placeholder="Some description..."
           className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 resize-none"
-          onChange={({ target }) =>
-            updateOptions({ [target.name]: target.value || null })
-          }
+          required
         ></textarea>
       </div>
-    </>
+    </form>
   )
 }
